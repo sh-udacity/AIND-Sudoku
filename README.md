@@ -3,11 +3,44 @@
 
 # Question 1 (Naked Twins)
 Q: How do we use constraint propagation to solve the naked twins problem?  
-A: *Student should provide answer here*
+
+A: Prior to adding a naked twins constraint, our solver
+would repeatedly apply the following two functions to
+constrain what possible values still exist, removing
+possible values from the state of board which violate the
+rules of the game: `eliminate` to update all peers of a
+solved box, removing the solved box's value from their list
+of possible values, and `only_choice` to assign a value to a
+box if its list of possible values contained a value which
+no other box in its unit could use.
+
+The idea of naked twins is that if two boxes in a unit share
+the same two possible values, for example both are
+represented with the value '37', we know no other box in
+that unit may use '3' or '7'.
+
+So I simply added a third function to process the state of
+the board after `eliminate` and `only_choice`, called
+`naked_twins`, which removes naked twins' values from each
+peer's list of possible values, using a peer list scoped to
+that specific unit.
 
 # Question 2 (Diagonal Sudoku)
 Q: How do we use constraint propagation to solve the diagonal sudoku problem?  
-A: *Student should provide answer here*
+
+A: Previously, the `eliminate` function would process each
+box step by step, where if its value was a single digit, we
+know no other peer can possibly use that value. Peer in this
+context means a particular Sudoku grouping's boxes, one of
+the vertical, horizontal, or square group that a given box
+occurs in.
+
+In order to cover the diagonal case, I simply added the two
+new diagonal units to the expression that builds the
+`unitlist`, which is then used when building every box's
+list of peers. `eliminate` then does the rest, applying its
+rule against the diagonal units as well when traversing the
+state of the board.
 
 ### Install
 
