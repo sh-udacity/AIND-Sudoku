@@ -1,30 +1,37 @@
-from utils import *
+rows = 'ABCDEFGHI'
+cols = '123456789'
+
+def cross(a, b):
+    "Cross product of elements in A and elements in B."
+    return [s+t for s in a for t in b]
+
+boxes = cross(rows, cols)
+
+row_units = [cross(r, cols) for r in rows]
+column_units = [cross(rows, c) for c in cols]
+square_units = [cross(rs, cs) for rs in ('ABC','DEF','GHI') for cs in ('123','456','789')]
+diagonal_units = [
+    ['A1', 'B2', 'C3', 'D4', 'E5', 'F6', 'G7', 'H8', 'I9'],
+    ['A9', 'B8', 'C7', 'D6', 'E5', 'F4', 'G3', 'H2', 'I1']
+]
+unitlist = row_units + column_units + square_units + diagonal_units
+
+units = dict((s, [u for u in unitlist if s in u]) for s in boxes)
+peers = dict((s, set(sum(units[s],[]))-set([s])) for s in boxes)
 
 assignments = []
 
-def assign_values(values):
-    "Update the assignments list, given the last puzzle reduction"
-    for box, value in values.items():
-        assign_value(assignments[-1], box, value)
+def grid_values(grid):
+    """Convert grid string into {<box>: <value>} dict with '.' value for empties.
 
-def assign_value(values, box, value):
+    Args:
+        grid: Sudoku grid in string form, 81 characters long
+    Returns:
+        Sudoku grid in dictionary form:
+        - keys: Box labels, e.g. 'A1'
+        - values: Value in corresponding box, e.g. '8', or '.' if it is empty.
     """
-    Please use this function to update your values dictionary!
-    Assigns a value to a given box. If it updates the board record it.
-    """
-    # seed assignments with initial board state
-    if not assignments:
-        assignments.append(values.copy())
-
-    # Don't waste memory appending actions that don't actually change any values
-    if values[box] == value:
-        return values
-
-    values[box] = value
-    if len(value) == 1:
-        assignments.append(values.copy())
-    return values
-
+    return dict(zip(boxes, [cols if c == '.' else c for c in grid]))
 def naked_twins(values):
     """Eliminate values using the naked twins strategy.
 
@@ -41,14 +48,14 @@ def naked_twins(values):
 
             # unit by unit, look for another twin
             for unit in peer_units:
-                twin = [peer for peer in unit if values[peer] == value and peer != box]
+                twin = next((peer for peer in unit if values[peer] == value and peer != box), False)
                 if not twin:
                     continue
 
                 # eg: ['A1', 'C1'], both equal '27'
                 twins = [box, twin]
-                peer_list = filter(lambda x: x not in twins, unit)
-                values = prune_twins_values_from_peers(values, peer_list, twins, value)
+                unsolved_peers_list = [peer for peer in unit if peer not in twins and len(values[peer]) > 1]
+                values = prune_twins_values_from_peers(values, unsolved_peers_list, twins, value)
     return values
 
 def prune_twins_values_from_peers(values, peer_list, twins, twins_value):
@@ -64,11 +71,10 @@ def prune_twins_values_from_peers(values, peer_list, twins, twins_value):
     """
     a, b = list(twins_value)
     for peer in peer_list:
-        if len(values[peer]) > 2:
-            if a in values[peer]:
-                values[peer] = values[peer].replace(a, '')
-            if b in values[peer]:
-                values[peer] = values[peer].replace(b, '')
+        if a in values[peer]:
+            values[peer] = values[peer].replace(a, '')
+        if b in values[peer]:
+            values[peer] = values[peer].replace(b, '')
     return values
 
 
@@ -157,6 +163,42 @@ def solve(grid):
 
     return search(values)
 
+def assign_values(values):
+    "Update the assignments list, given the last puzzle reduction"
+    for box, value in values.items():
+        assign_value(assignments[-1], box, value)
+
+def assign_value(values, box, value):
+    """
+    Please use this function to update your values dictionary!
+    Assigns a value to a given box. If it updates the board record it.
+    """
+    # seed assignments with initial board state
+    if not assignments:
+        assignments.append(values.copy())
+
+    # Don't waste memory appending actions that don't actually change any values
+    if values[box] == value:
+        return values
+
+    values[box] = value
+    if len(value) == 1:
+        assignments.append(values.copy())
+    return values
+
+def display(values):
+    """
+    Display the values as a 2-D grid.
+    Input: The sudoku in dictionary form
+    Output: None
+    """
+    width = 1+max(len(values[s]) for s in boxes)
+    line = '+'.join(['-'*(width*3)]*3)
+    for r in rows:
+        print(''.join(values[r+c].center(width)+('|' if c in '36' else '')
+                      for c in cols))
+        if r in 'CF': print(line)
+    return
 if __name__ == '__main__':
     diag_sudoku_grid = '2.............62....1....7...6..8...3...9...7...6..4...4....8....52.............3'
     display(solve(diag_sudoku_grid))
